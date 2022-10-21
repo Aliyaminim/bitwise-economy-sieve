@@ -7,42 +7,61 @@ struct sieve_t {
     unsigned char *mod1;
     unsigned char *mod5;
 };
+
+int get(struct sieve_t *sv, int k, int num)
+{
+    int val=0;
+    if (num == 1)
+        val = (sv->mod1[k / 8] >> (k % 8)) & 1u;
+
+    if (num == 5)
+        val = (sv->mod5[k / 8] >> (k % 8)) & 1u;
+
+    if (val == 0)
+        return 1;
+    else
+        return 0;
+}
+
+void set(struct sieve_t *sv, int x, int num)
+{
+    x = x / 6;
+    if (num == 1)
+        sv->mod1[x / 8] = sv->mod1[x / 8] | (1u << (x % 8));
+    else
+        sv->mod5[x / 8] = sv->mod5[x / 8] | (1u << (x % 8));
+
+}
+
+
+
 void fill_sieve(struct sieve_t *sv)
 {
-    unsigned long long k, m, x;
-    int val;
+    long long k;
+    unsigned long long ch;
     sv->mod1[0] = sv->mod1[0] | (1u << 0);
-
-    for (k = 1; k + 1 <= (sv->n) * 8; k++) {
-        val = (sv->mod1[k / 8] >> (k % 8)) & 1u;
-        if (val == 0) {
-            for (m = k; m + 1 <= (sv->n) * 8; m += 1) {
-                x = (6 * m + 1) * k + (6 * m + 1) / 6;
-                if (x + 1 <= (sv->n) * 8)
-                    sv->mod1[x / 8] = sv->mod1[x / 8] | (1u << (x % 8));
-
-                x = (6 * m + 5) * k + (6 * m + 5) / 6;
-                if (x + 1 <= (sv->n) * 8)
-                    sv->mod5[x / 8] = sv->mod5[x / 8] | (1u << (x % 8));
-            }
-        }
-    }
     for (k = 0; k + 1 <= (sv->n) * 8; k++) {
-        val = (sv->mod5[k / 8] >> (k % 8)) & 1u;
-        if (val == 0) {
-            for (m = k + 1; m + 1 <= (sv->n) * 8; m += 1) {
-                x = (6 * m + 1) * k + (5 * (6 * m + 1)) / 6;
-                if (x + 1 <= (sv->n) * 8)
-                    sv->mod5[x / 8] = sv->mod5[x / 8] | (1u << (x % 8));
-            }
-            for (m = k; m + 1 <= (sv->n) * 8; m += 1) {
-                x = (6 * m + 5) * k + (5 * (6 * m + 5)) / 6;
-                if (x + 1 <= (sv->n) * 8)
-                    sv->mod1[x / 8] = sv->mod1[x / 8] | (1u << (x % 8));
-            }
+        if ((k != 0) && get(sv, k, 1)) {
+            for (ch = (6 * k + 1) * (6 * k + 1);
+                 ch <= (6 * ((sv->n) * 8 - 1) + 1); ch += (6 * k + 1))
+                if ((ch % 6) == 1)
+                    set(sv, ch, 1);
+            for (ch = (6 * k + 1) * (6 * k + 5);
+                 ch <= (6 * ((sv->n) * 8 - 1) + 5); ch += (6 * k + 1))
+                if ((ch % 6) == 5)
+                    set(sv, ch, 5);
+        }
+        if (get(sv, k, 5)) {
+            for (ch = (6 * k + 5) * (6 * k + 5);
+                 ch <= (6 * ((sv->n) * 8 - 1) + 1); ch += (6 * k + 5))
+                if ((ch % 6) == 1)
+                    set(sv, ch, 1);
+            for (ch = (6 * (k + 1) + 1) * (6 * k + 5);
+                 ch <= (6 * ((sv->n) * 8 - 1) + 5); ch += (6 * k + 5))
+                if ((ch % 6) == 5)
+                    set(sv, ch, 5);
         }
     }
-    printf("%d %d\n", sv->mod1[1], sv->mod5[1]);
 }
 
 int is_prime(struct sieve_t *sv, unsigned n)
